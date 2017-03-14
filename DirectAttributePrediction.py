@@ -1,13 +1,12 @@
+import sys
 import numpy as np
 from time import time
 from utils import bzPickle, bzUnpickle, get_class_attributes, create_data
-from sklearn.pipeline import Pipeline
-from sklearn.svm import LinearSVC
-from sklearn.kernel_approximation import SkewedChi2Sampler
 from sklearn.model_selection import train_test_split
-from platt import SigmoidTrain, SigmoidPredict
+from SVMClassifier import SVMClassifier
 
-if __name__ == '__main__':
+
+def DirectAttributePrediction(classifier='SVM',):
 	# Get features index to recover samples
 	train_index = bzUnpickle('./CreatedData/train_features_index.txt')
 	test_index = bzUnpickle('./CreatedData/test_features_index.txt')
@@ -40,23 +39,61 @@ if __name__ == '__main__':
 	for i in range(N_ATTRIBUTES):
 		print ('--------- Attribute %d/%d ---------' % (i+1,N_ATTRIBUTES))
 		t0 = time()
-		feature_map_fourier = SkewedChi2Sampler(skewedness=3.,  n_components=100)
-		clf = Pipeline([
-			("feature_map", feature_map_fourier),
-			("svm",LinearSVC(C=10.)) ])
 
+		# Choose classifier
+		if classifier == 'SVM': 
+			clf = SVMClassifier()
+
+		# Training
 		clf.fit(Xplat_train, yplat_train[:,i])
 		print ('Fitted classifier in: %fs' % (time() - t0))
+		clf.set_platt_params(Xplat_val, yplat_val[:,i])
 
-		yplat_pred = clf.predict(Xplat_val)
-		pt_param = SigmoidTrain(yplat_pred, yplat_val[:,i])
-		platt_params.append(pt_param)
-
+		# Predicting
 		print ('Predicting for attribute %d...' % (i+1))
 		y_pred[:,i] = clf.predict(X_test)
-		y_proba[:,i] = SigmoidPredict(y_pred[:,i], pt_param)
-       
+		y_proba[:,i] = clf.predict_proba(X_test)
+     
 	print ('Saving files...')
 	np.savetxt('./DAP/platt_params', platt_params)
 	np.savetxt('./DAP/prediction', y_pred)
 	np.savetxt('./DAP/probabilities', y_proba)
+
+
+def main():
+	list_clf = ['SVM', 'NN']
+
+	try:
+		method = str(sys.argv[1])
+	except IndexError:
+		print ("Must specify attribute method!")
+		raise SystemExit
+	try:
+	    clf = str(sys.argv[2])
+	except IndexError:
+	    clf = 'SVM'
+	try:
+	    split = int(sys.argv[3])
+	except IndexError:
+	    split = 0
+	try:
+	    C = float(sys.argv[4])
+	except IndexError:
+	    C = 10.
+
+	if clf not in list_clf:
+	    print ("Non valid choice of classifier (SVM, NN)")
+	    raise SystemExit
+
+	if method == 'DAP':
+		DirectAttributePrediction(classifier=clf)
+	else:
+	    print ("Non valid choice of method (DAP, IAP)")
+	    raise SystemExit  		
+
+	print ("Done.", C, split)
+
+
+if __name__ == '__main__':
+	main()
+

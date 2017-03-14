@@ -34,8 +34,13 @@ def createFeaturesVector(path,feat_shape=4096):
                 tmp_features = np.loadtxt(img_feat_path, comments="#", delimiter=",", unpack=False)
                 tmp_features = tmp_features.reshape(((feat_shape,1)))
                 features = np.concatenate((features,tmp_features), axis=1)
-        
-        picklefile = 'featuresVGG19_' + animal + '.pic.bz2'
+
+        try:
+            os.stat('feat/')
+        except:
+            os.mkdir('feat/')
+
+        picklefile = 'feat/featuresVGG19_' + animal + '.pic.bz2'
         print ("Pickling ",animal, " features to ",picklefile)
         bzPickle(features, picklefile)            
 
