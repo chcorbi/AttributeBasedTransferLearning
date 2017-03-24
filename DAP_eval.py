@@ -9,6 +9,9 @@ import os,sys
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
+from utils import bzPickle, bzUnpickle, get_class_attributes, create_data
+import warnings
+warnings.filterwarnings('ignore')
 
 def nameonly(x):
     return x.split('\t')[1]
@@ -29,9 +32,8 @@ def loaddict(filename,converter=str):
 classnames = loadstr('classes.txt',nameonly)
 numexamples = loaddict('numexamples.txt',int)
 
-def evaluate(split,C):
+def evaluate(split,C, attributepattern):
     global test_classnames
-    attributepattern = 'DAP/probabilities'
     
     if split == 0:
         test_classnames=loadstr('testclasses.txt')
@@ -81,7 +83,7 @@ def evaluate(split,C):
     return confusion,np.asarray(prob),L
 
 
-def plot_confusion(confusion):
+def plot_confusion(confusion, clf):
     fig=plt.figure(figsize=(10,9))
     plt.imshow(confusion,interpolation='nearest',origin='upper')
     plt.clim(0,1)
@@ -96,10 +98,10 @@ def plot_confusion(confusion):
     fig.subplots_adjust(bottom=0.22)
     plt.gray()
     plt.colorbar(shrink=0.79)
-    plt.savefig('results/AwA-ROC-confusion-DAP.pdf')
+    plt.savefig('results/AwA-ROC-confusion-DAP-%s.pdf' %clf)
     return 
 
-def plot_roc(P,GT):
+def plot_roc(P,GT, clf):
     AUC=[]
     CURVE=[]
     for i,c in enumerate(test_classnames):
@@ -109,6 +111,10 @@ def plot_roc(P,GT):
         print ("AUC: %s %5.3f" % (c,roc_auc))
         AUC.append(roc_auc)
         CURVE.append(np.array([fp,tp]))
+
+    print ("----------------------------------")
+    print ("Mean classAUC %g" % (np.mean(AUC)*100))
+
     order = np.argsort(AUC)[::-1]
     styles=['-','-','-','-','-','-','-','--','--','--']
     plt.figure(figsize=(9,5))
@@ -121,23 +127,61 @@ def plot_roc(P,GT):
     plt.yticks([0.0,0.2,0.4,0.6,0.8,1.0], [r'$0$', r'$0.2$',r'$0.4$',r'$0.6$',r'$0.8$',r'$1.0$'],fontsize=18)
     plt.xlabel('false negative rate',fontsize=18)
     plt.ylabel('true positive rate',fontsize=18)
-    plt.savefig('results/AwA-ROC-DAP.pdf')
+    plt.savefig('results/AwA-ROC-DAP-%s.pdf' %clf)
+
+
+def plot_attAUC(GT, attributepattern, clf):
+    AUC=[]
+    P = np.loadtxt(attributepattern) 
+
+    # Loading ground truth 
+    test_index = bzUnpickle('./CreatedData/test_features_index.txt')
+    test_attributes = get_class_attributes('./', name='test')
+    _, y_true = create_data('./CreatedData/test_featuresVGG19.pic.bz2',test_index, test_attributes)
+
+    for i in range(y_true.shape[1]):
+        fp, tp, _ = roc_curve(y_true[:,i],  P[:,i])
+        roc_auc = auc(fp, tp)
+        AUC.append(roc_auc)
+    print ("Mean attrAUC %g" % (np.nanmean(AUC)*100) )
+
+    xs = np.arange(y_true.shape[1])
+    width = 2
+    plt.figure(figsize=(9,5))
+    plt.bar(xs, AUC, width, align='center')
+    plt.xticks(xs) #Replace default x-ticks with xs, then replace xs with labels
+    plt.yticks(AUC)
+    plt.ylabel('Percent AUC',fontsize=18)
+    plt.savefig('results/AwA-AttAUC-DAP-%s.pdf' %clf)        
+
 
 def main():
+    list_clf = ['SVM', 'NN']
     try:
-        split = int(sys.argv[1])
+        clf = str(sys.argv[1])
+    except IndexError:
+        clf = 'SVM'
+
+    if clf not in list_clf:
+        print ("Non valid choice of classifier (SVM, NN)")
+        raise SystemExit
+
+    try:
+        split = int(sys.argv[2])
     except IndexError:
         split = 0
 
     try:
-        C = float(sys.argv[2])
+        C = float(sys.argv[3])
     except IndexError:
         C = 10.
 
-    confusion,prob,L = evaluate(split,C)
+    attributepattern = 'DAP/probabilities_' + clf
+    confusion,prob,L = evaluate(split,C, attributepattern)
+    plot_confusion(confusion, clf) 
+    plot_roc(prob,L, clf)
+    plot_attAUC(L, attributepattern, clf)
     print ("Mean class accuracy %g" % np.mean(np.diag(confusion)*100))
-    plot_confusion(confusion) 
-    plot_roc(prob,L)
     
 if __name__ == '__main__':
     main()

@@ -4,6 +4,7 @@ from time import time
 from utils import bzPickle, bzUnpickle, get_class_attributes, create_data
 from sklearn.model_selection import train_test_split
 from SVMClassifier import SVMClassifier
+from NeuralNetworkClassifier import NeuralNetworkClassifier2
 
 
 def DirectAttributePrediction(classifier='SVM',):
@@ -34,30 +35,47 @@ def DirectAttributePrediction(classifier='SVM',):
 	print ('X_test to dense...')
 	X_test = X_test.toarray()
 
-	# Training svm
-	platt_params = []
-	for i in range(N_ATTRIBUTES):
-		print ('--------- Attribute %d/%d ---------' % (i+1,N_ATTRIBUTES))
-		t0 = time()
+	# CHOOSING SVM
+	if classifier == 'SVM':
+		platt_params = []
+		for i in range(N_ATTRIBUTES):
+			print ('--------- Attribute %d/%d ---------' % (i+1,N_ATTRIBUTES))
+			t0 = time()
 
-		# Choose classifier
-		if classifier == 'SVM': 
+			# SVM classifier
 			clf = SVMClassifier()
 
-		# Training
-		clf.fit(Xplat_train, yplat_train[:,i])
-		print ('Fitted classifier in: %fs' % (time() - t0))
-		clf.set_platt_params(Xplat_val, yplat_val[:,i])
+			# Training
+			clf.fit(Xplat_train, yplat_train[:,i])
+			print ('Fitted classifier in: %fs' % (time() - t0))
+			clf.set_platt_params(Xplat_val, yplat_val[:,i])
 
-		# Predicting
-		print ('Predicting for attribute %d...' % (i+1))
-		y_pred[:,i] = clf.predict(X_test)
-		y_proba[:,i] = clf.predict_proba(X_test)
-     
-	print ('Saving files...')
-	np.savetxt('./DAP/platt_params', platt_params)
-	np.savetxt('./DAP/prediction', y_pred)
-	np.savetxt('./DAP/probabilities', y_proba)
+			# Predicting
+			print ('Predicting for attribute %d...' % (i+1))
+			y_pred[:,i] = clf.predict(X_test)
+			y_proba[:,i] = clf.predict_proba(X_test)
+
+			print ('Saving files...')
+			np.savetxt('./DAP/platt_params_SVM', platt_params)
+			np.savetxt('./DAP/prediction_SVM', y_pred)
+			np.savetxt('./DAP/probabilities_SVM', y_proba)
+	
+
+	# CHOOSING NEURAL NETWORK
+	if classifier == 'NN':
+		clf = NeuralNetworkClassifier2(dim_features=X_train.shape[1], nb_attributes=N_ATTRIBUTES)
+
+		print ('Fitting Neural Network...')
+		clf.fit(X_train, y_train)
+
+		print ('Predicting attributes...')
+		y_pred = np.array(clf.predict(X_test))
+		y_pred = y_pred.reshape((y_pred.shape[0], y_pred.shape[1])).T
+		y_proba = y_pred
+    
+		print ('Saving files...')
+		np.savetxt('./DAP/prediction_NN', y_pred)
+		np.savetxt('./DAP/probabilities_NN', y_proba)
 
 
 def main():

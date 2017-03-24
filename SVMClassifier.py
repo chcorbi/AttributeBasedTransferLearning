@@ -6,7 +6,7 @@ from sklearn.base import BaseEstimator
 from platt import SigmoidTrain, SigmoidPredict
 
 class SVMClassifier(BaseEstimator):                                                  
-    def __init__(self, skewedness=3., n_components=100, C=10.):
+    def __init__(self, skewedness=3., n_components=85, C=100.):
     	self.platt_params = []
     	self.feature_map_fourier = SkewedChi2Sampler(skewedness=skewedness,	n_components=n_components)
     	self.clf = Pipeline([("feature_map", self.feature_map_fourier),
