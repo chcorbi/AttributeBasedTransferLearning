@@ -33,7 +33,7 @@ python concatenateSetFeatures.py
 ```
 python DirectAttributePrediction.py DAP SVM
 ```
-4. Generate and save confusion matrix plot and roc in ./results
+4. Generate and save confusion matrix plot and roc in ./results given a classifier
 ```
-python DAP_eval.py
+python DAP_eval.py SVM
 ```
