@@ -15,9 +15,10 @@ For this matter, we choose to try two learner :
 
 Dataset included:
 - Animals with Attributed dataset
+- PubFig
 
 
-## How to use it
+## For AwA dataset, how to use it
 
 0. Download Animal VGG19 features [here](http://www.ist.ac.at/~chl/AwA/AwA-features-vgg19.tar.bz2) and decompress it.
 
@@ -37,3 +38,14 @@ python DirectAttributePrediction.py DAP SVM
 ```
 python DAP_eval.py SVM
 ```
+
+
+## For Pubfig dataset, how to use it
+
+0. Download Animal VGG19 features [here](http://vision.seas.harvard.edu/pubfig83/pubfig83.v1.tgz) and decompress it on Datasets/PubFig.
+
+1. Compute attributes_names, celebrities and attributes as an array
+```
+python preparePubFigFiles.py
+```
+
