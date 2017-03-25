@@ -63,3 +63,4 @@ def autolabel(rects, ax):
     		height = rect.get_height()
     	ax.text(rect.get_x() + rect.get_width()/2., 1.05*height, '%0.3f' % height, 
     		ha='center', va='bottom', rotation=90)
+
