@@ -9,7 +9,7 @@ import os,sys
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
-from utils import bzPickle, bzUnpickle, get_class_attributes, create_data
+from utils import bzPickle, bzUnpickle, get_class_attributes, get_attributes, create_data, autolabel
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -133,6 +133,7 @@ def plot_roc(P,GT, clf):
 def plot_attAUC(GT, attributepattern, clf):
     AUC=[]
     P = np.loadtxt(attributepattern) 
+    attributes = get_attributes()
 
     # Loading ground truth 
     test_index = bzUnpickle('./CreatedData/test_features_index.txt')
@@ -143,15 +144,18 @@ def plot_attAUC(GT, attributepattern, clf):
         fp, tp, _ = roc_curve(y_true[:,i],  P[:,i])
         roc_auc = auc(fp, tp)
         AUC.append(roc_auc)
-    print ("Mean attrAUC %g" % (np.nanmean(AUC)*100) )
+    print ("Mean attrAUC %g" % (np.nanmean(AUC)) )
 
     xs = np.arange(y_true.shape[1])
-    width = 2
-    plt.figure(figsize=(9,5))
-    plt.bar(xs, AUC, width, align='center')
-    plt.xticks(xs) #Replace default x-ticks with xs, then replace xs with labels
-    plt.yticks(AUC)
-    plt.ylabel('Percent AUC',fontsize=18)
+    width = 0.5
+
+    fig = plt.figure(figsize=(15,5))
+    ax = fig.add_subplot(1,1,1)
+    rects = ax.bar(xs, AUC, width, align='center')
+    ax.set_xticks(xs)
+    ax.set_xticklabels(attributes,  rotation=90)
+    ax.set_ylabel("area under ROC curve")
+    autolabel(rects, ax)
     plt.savefig('results/AwA-AttAUC-DAP-%s.pdf' %clf)        
 
 

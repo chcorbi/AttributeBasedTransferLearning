@@ -4,7 +4,7 @@ from time import time
 from utils import bzPickle, bzUnpickle, get_class_attributes, create_data
 from sklearn.model_selection import train_test_split
 from SVMClassifier import SVMClassifier
-from NeuralNetworkClassifier import NeuralNetworkClassifier2
+from NeuralNetworkClassifier import NeuralNetworkClassifier
 
 
 def DirectAttributePrediction(classifier='SVM',):
@@ -63,7 +63,7 @@ def DirectAttributePrediction(classifier='SVM',):
 
 	# CHOOSING NEURAL NETWORK
 	if classifier == 'NN':
-		clf = NeuralNetworkClassifier2(dim_features=X_train.shape[1], nb_attributes=N_ATTRIBUTES)
+		clf = NeuralNetworkClassifier(dim_features=X_train.shape[1], nb_attributes=N_ATTRIBUTES)
 
 		print ('Fitting Neural Network...')
 		clf.fit(X_train, y_train)
