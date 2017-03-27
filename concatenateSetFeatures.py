@@ -40,7 +40,7 @@ def concatenate_set_features(set_classes, nameset='train'):
             X = np.concatenate((X,features),axis=0)
         index.append((animal,features.shape[0]))
     X = csr_matrix(X)
-    
+
     try:
         os.stat('CreatedData/')
     except:
@@ -48,7 +48,7 @@ def concatenate_set_features(set_classes, nameset='train'):
 
     picklefile = 'CreatedData/' + nameset + '_featuresVGG19.pic.bz2'
     bzPickle(X, picklefile)
-    bzPickle(index, 'CreatedData/' nameset + '_features_index.txt') 
+    bzPickle(index, 'CreatedData/' + nameset + '_features_index.txt') 
 
 
 if __name__ == '__main__':
