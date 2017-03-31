@@ -34,11 +34,18 @@ python concatenateSetFeatures.py
 ```
 python DirectAttributePrediction.py DAP SVM
 ```
+3. (bis) Train and predict using IAP with SVM. Prediction and probabilities saved in ./IAP
+```
+python indirectAttributePrediction.py IAP
+```
 4. Generate and save confusion matrix plot and roc in ./results given a classifier
 ```
 python DAP_eval.py SVM
 ```
-
+4. (bis) Generate and save confusion matrix plot and roc in ./results given a classifier
+```
+python IAP_eval.py
+```
 
 ## For Pubfig dataset, how to use it
 
