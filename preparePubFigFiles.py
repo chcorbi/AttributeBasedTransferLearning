@@ -2,6 +2,8 @@ import numpy as np
 import csv
 import pickle as cPickle
 import bz2
+import random
+SEED = 448
 
 
 def bzPickle(obj,filename):
@@ -9,27 +11,32 @@ def bzPickle(obj,filename):
     cPickle.dump(obj, f)
     f.close()
 
+def bzUnpickle(filename):
+    return cPickle.load(bz2.BZ2File(filename))
+
 def writeListToTxt (wlist, filename):
     with open(filename, 'w') as wfile:
         for item in wlist:
             wfile.write("%s\n" % item)
 
-def preparePubFigFiles():
+def readTxtToList(filename):
+    rlist=[]
+    with open(filename, 'r') as rfile:
+        for line in rfile:
+            rlist.append(line[:-1])
+    return rlist
+
+
+def preparePubFigFiles(test_size = 0.20):
 	path = 'Datasets/PubFig/'
 	d = 73
 
-	# Get number of items
+	# Get number of items, attribute_name and celebrities
 	n = 0
+	celebrities = []
 	with open(path + 'pubfig_attributes.txt') as infile:
 	    for i,line in enumerate(infile):
 	        n+=1
-	n = n-2
-
-	# Obtain attributes names, celibrities and attributes as lsit
-	attributes = []
-	celebrities = []
-	with open(path +'pubfig_attributes.txt') as infile:
-	    for i,line in enumerate(infile):
 	        if i==0:
 	            continue
 	        elif i==1:
@@ -39,18 +46,47 @@ def preparePubFigFiles():
 	            person = stripped_line[0]
 	            if person not in celebrities:
 	                celebrities.append(person)
-	            line_attribute = [float(x) for x in stripped_line[2:]]
-	            attributes.append(line_attribute)
-
-	# Convert attributes list to array
-	attributes_array = np.zeros((n,d))
-	for i in range(n):
-	    attributes_array[i,:] = np.array(attributes[i])
-
-	# Save files 
+	        n = n-2
 	writeListToTxt (attribute_names, path + 'attribute_names.txt')
 	writeListToTxt (celebrities, path + 'celebrities.txt')
-	bzPickle(attributes_array, path + 'attributes')
+
+	# Split train/test classes
+	train_celebrities = celebrities[int(test_size*len(celebrities)):]
+	test_celebrities = celebrities[-int(test_size*len(celebrities)):]
+	writeListToTxt (train_celebrities, path + 'train_celebrities.txt')
+	writeListToTxt (test_celebrities, path + 'test_celebrities.txt')
+
+	# Obtain attributes as list
+	train_attributes = []
+	test_attributes = []
+	with open(path + 'pubfig_attributes.txt') as infile:
+	    for i,line in enumerate(infile):
+	        if i==0 or i==1:
+	            continue
+	        elif i==1:
+	            attribute_names = line.strip().split("\t")[3:]
+	        else:
+	            stripped_line = line.strip().split("\t")
+	            person = stripped_line[0]
+	            line_attribute = [float(x) for x in stripped_line[2:]]
+	            if person in train_celebrities:
+	                train_attributes.append(line_attribute)
+	            else:
+	                test_attributes.append(line_attribute)
+
+	# Convert attributes list to array
+	train_attributes_array = np.zeros((len(train_attributes),d))
+	test_attributes_array = np.zeros((len(test_attributes),d))
+
+	for i in range(len(train_attributes)):
+	    train_attributes_array[i,:] = np.array(train_attributes[i])
+	    
+	for i in range(len(test_attributes)):
+	    test_attributes_array[i,:] = np.array(test_attributes[i])
+
+	# Save files 
+	bzPickle(train_attributes_array, path + 'train_attributes')
+	bzPickle(test_attributes_array, path + 'test_attributes') 
 
 if __name__ == '__main__':
     preparePubFigFiles()
