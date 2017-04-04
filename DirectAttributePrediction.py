@@ -3,18 +3,21 @@ import numpy as np
 from time import time
 from utils import bzPickle, bzUnpickle, get_class_attributes, create_data
 from sklearn.model_selection import train_test_split
+from sklearn.svm import SVR
 from SVMClassifier import SVMClassifier
+from SVMRegressor import SVMRegressor
 from NeuralNetworkClassifier import NeuralNetworkClassifier
+from NeuralNetworkRegressor import NeuralNetworkRegressor
 
 
-def DirectAttributePrediction(classifier='SVM',):
+def DirectAttributePrediction(classifier='SVM', predicate_type='binary', C=10.0):
 	# Get features index to recover samples
 	train_index = bzUnpickle('./CreatedData/train_features_index.txt')
 	test_index = bzUnpickle('./CreatedData/test_features_index.txt')
 
 	# Get classes-attributes relationship
-	train_attributes = get_class_attributes('./', name='train')
-	test_attributes = get_class_attributes('./', name='test')
+	train_attributes = get_class_attributes('./', name='train', predicate_type=predicate_type)
+	test_attributes = get_class_attributes('./', name='test', predicate_type=predicate_type)
 	N_ATTRIBUTES = train_attributes.shape[1]
 
 	# Create training Dataset
@@ -43,27 +46,36 @@ def DirectAttributePrediction(classifier='SVM',):
 			t0 = time()
 
 			# SVM classifier
-			clf = SVMClassifier()
+			if predicate_type == 'binary':
+				clf = SVMClassifier()
+			else:
+				clf = SVMRegressor()
 
 			# Training
-			clf.fit(Xplat_train, yplat_train[:,i])
+			clf.fit(X_train, y_train[:,i])
 			print ('Fitted classifier in: %fs' % (time() - t0))
-			clf.set_platt_params(Xplat_val, yplat_val[:,i])
+			if predicate_type == 'binary':
+				clf.set_platt_params(Xplat_val, yplat_val[:,i])
 
 			# Predicting
 			print ('Predicting for attribute %d...' % (i+1))
 			y_pred[:,i] = clf.predict(X_test)
-			y_proba[:,i] = clf.predict_proba(X_test)
+			if predicate_type == 'binary':
+				y_proba[:,i] = clf.predict_proba(X_test)
 
 			print ('Saving files...')
-			np.savetxt('./DAP/platt_params_SVM', platt_params)
-			np.savetxt('./DAP/prediction_SVM', y_pred)
-			np.savetxt('./DAP/probabilities_SVM', y_proba)
+			np.savetxt('./DAP_'+predicate_type+'/prediction_SVM', y_pred)
+			if predicate_type == 'binary':
+				np.savetxt('./DAP_'+predicate_type+'/platt_params_SVM', platt_params)
+				np.savetxt('./DAP_'+predicate_type+'/probabilities_SVM', y_proba)
 	
 
 	# CHOOSING NEURAL NETWORK
 	if classifier == 'NN':
-		clf = NeuralNetworkClassifier(dim_features=X_train.shape[1], nb_attributes=N_ATTRIBUTES)
+		if predicate_type != 'binary':
+		    clf = NeuralNetworkRegressor(dim_features=X_train.shape[1], nb_attributes=N_ATTRIBUTES)
+		else:
+		    clf = NeuralNetworkClassifier(dim_features=X_train.shape[1], nb_attributes=N_ATTRIBUTES)
 
 		print ('Fitting Neural Network...')
 		clf.fit(X_train, y_train)
@@ -74,8 +86,9 @@ def DirectAttributePrediction(classifier='SVM',):
 		y_proba = y_pred
     
 		print ('Saving files...')
-		np.savetxt('./DAP/prediction_NN', y_pred)
-		np.savetxt('./DAP/probabilities_NN', y_proba)
+		np.savetxt('./DAP_'+predicate_type+'/prediction_NN', y_pred)
+		if predicate_type == 'binary':
+		    np.savetxt('./DAP_'+predicate_type+'/probabilities_NN', y_proba)
 
 
 def main():
@@ -91,11 +104,15 @@ def main():
 	except IndexError:
 	    clf = 'SVM'
 	try:
-	    split = int(sys.argv[3])
+	    p_type = str(sys.argv[3])
+	except IndexError:
+	    p_type = 'binary'
+	try:
+	    split = int(sys.argv[4])
 	except IndexError:
 	    split = 0
 	try:
-	    C = float(sys.argv[4])
+	    C = float(sys.argv[5])
 	except IndexError:
 	    C = 10.
 
@@ -104,12 +121,12 @@ def main():
 	    raise SystemExit
 
 	if method == 'DAP':
-		DirectAttributePrediction(classifier=clf)
+		DirectAttributePrediction(classifier=clf, predicate_type=p_type, C=C)
 	else:
 	    print ("Non valid choice of method (DAP, IAP)")
 	    raise SystemExit  		
 
-	print ("Done.", C, split)
+	print ("Done.")
 
 
 if __name__ == '__main__':

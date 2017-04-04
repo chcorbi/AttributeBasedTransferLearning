@@ -32,7 +32,7 @@ def loaddict(filename,converter=str):
 classnames = loadstr('classes.txt',nameonly)
 numexamples = loaddict('numexamples.txt',int)
 
-def evaluate(split,C, attributepattern):
+def evaluate(split,C, attributepattern, p_type='binary'):
     global test_classnames
     
     if split == 0:
@@ -47,7 +47,7 @@ def evaluate(split,C, attributepattern):
     test_classes = [ classnames.index(c) for c in test_classnames]
     train_classes = [ classnames.index(c) for c in train_classnames]
 
-    M = np.loadtxt('predicate-matrix-binary.txt',dtype=float)
+    M = np.loadtxt('predicate-matrix-'+p_type+'.txt',dtype=float)
 
     L=[]
     for c in test_classes:
@@ -55,35 +55,56 @@ def evaluate(split,C, attributepattern):
 
     L=np.array(L)  # (n,)
 
-    P = np.loadtxt(attributepattern) # (85,n)
+    if p_type == 'binary':
+        P = np.loadtxt(attributepattern) # (85,n)
 
-    prior = np.mean(M[train_classes],axis=0)
-    prior[prior==0.]=0.5
-    prior[prior==1.]=0.5    # disallow degenerated priors
-    M = M[test_classes] # (10,85)
+        prior = np.mean(M[train_classes],axis=0)
+        prior[prior==0.]=0.5
+        prior[prior==1.]=0.5    # disallow degenerated priors
+        M = M[test_classes] # (10,85)
 
-    prob=[]
-    for p in P:
-        prob.append( np.prod(M*p + (1-M)*(1-p),axis=1)/np.prod(M*prior+(1-M)*(1-prior), axis=1) )
+        prob=[]
+        for p in P:
+            prob.append( np.prod(M*p + (1-M)*(1-p),axis=1)/np.prod(M*prior+(1-M)*(1-prior), axis=1) )
 
-    MCpred = np.argmax( prob, axis=1 )
+            MCpred = np.argmax( prob, axis=1 )
+	    
+            d = len(test_classes)
+            confusion=np.zeros([d,d])
+            for pl,nl in zip(MCpred,L):
+                try:
+                    gt = test_classes.index(nl)
+                    confusion[gt,pl] += 1.
+                except:
+                    pass
+
+            for row in confusion:
+                row /= sum(row)
+	    
+        return confusion,np.asarray(prob),L
     
-    d = len(test_classes)
-    confusion=np.zeros([d,d])
-    for pl,nl in zip(MCpred,L):
-        try:
-            gt = test_classes.index(nl)
-            confusion[gt,pl] += 1.
-        except:
-            pass
+    else:
+        M = M[test_classes]
+        A = np.loadtxt(attributepattern)
+        pred_class = []
+        for a in A:
+            pred_class.append(np.argmin(np.linalg.norm(M - a, axis=1)))
+            #pred_class.append(np.argmax(np.dot(M, a)))
+            #pred_class.append(np.argmax())
+        d = len(test_classes)
+        confusion=np.zeros([d,d])
+        for pl, nl in zip(pred_class, L):
+            try:
+                gt = test_classes.index(nl)
+                confusion[gt,pl] += 1
+            except:
+                pass
+        for row in confusion:
+            row /= sum(row)
 
-    for row in confusion:
-        row /= sum(row)
-    
-    return confusion,np.asarray(prob),L
+        return confusion, np.asarray(pred_class), L
 
-
-def plot_confusion(confusion, clf):
+def plot_confusion(confusion, clf, p_type='binary'):
     fig=plt.figure(figsize=(10,9))
     plt.imshow(confusion,interpolation='nearest',origin='upper')
     plt.clim(0,1)
@@ -98,7 +119,7 @@ def plot_confusion(confusion, clf):
     fig.subplots_adjust(bottom=0.22)
     plt.gray()
     plt.colorbar(shrink=0.79)
-    plt.savefig('results/AwA-ROC-confusion-DAP-%s.pdf' %clf)
+    plt.savefig('results/AwA-ROC-confusion-DAP-'+p_type+'-%s.pdf' %clf)
     return 
 
 def plot_roc(P,GT, clf):
@@ -169,23 +190,32 @@ def main():
     if clf not in list_clf:
         print ("Non valid choice of classifier (SVM, NN)")
         raise SystemExit
-
     try:
-        split = int(sys.argv[2])
+        p_type = str(sys.argv[2])
+    except IndexError:
+        p_type = 'binary'
+    try:
+        split = int(sys.argv[3])
     except IndexError:
         split = 0
 
     try:
-        C = float(sys.argv[3])
+        C = float(sys.argv[4])
     except IndexError:
         C = 10.
 
-    attributepattern = 'DAP/probabilities_' + clf
-    confusion,prob,L = evaluate(split,C, attributepattern)
-    plot_confusion(confusion, clf) 
-    plot_roc(prob,L, clf)
-    plot_attAUC(L, attributepattern, clf)
-    print ("Mean class accuracy %g" % np.mean(np.diag(confusion)*100))
+    if p_type == 'binary':
+        attributepattern = 'DAP/probabilities_' + clf
+        confusion,prob,L = evaluate(split,C, attributepattern)
+        plot_confusion(confusion, clf) 
+        plot_roc(prob,L, clf)
+        plot_attAUC(L, attributepattern, clf)
+        print ("Mean class accuracy %g" % np.mean(np.diag(confusion)*100))
+    else:
+        attributepattern = 'DAP_'+p_type+'/prediction_' + clf
+        confusion,pred,L = evaluate(split,C, attributepattern, p_type)
+        plot_confusion(confusion, clf, p_type) 
+        print ("Mean class accuracy %g" % np.mean(np.diag(confusion)*100))
     
 if __name__ == '__main__':
     main()

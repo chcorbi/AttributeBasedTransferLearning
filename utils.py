@@ -33,9 +33,9 @@ def get_attributes():
 	        attributes.append(line[:-1])
 	return attributes
 
-def get_class_attributes(path, name='train'):
+def get_class_attributes(path, name='train', predicate_type='binary'):
 	animal_index = get_animal_index(path, name+'classes.txt')
-	classAttributes = np.loadtxt(path + "predicate-matrix-binary.txt", comments="#", unpack=False)
+	classAttributes = np.loadtxt(path + "predicate-matrix-" + predicate_type + ".txt", comments="#", unpack=False)
 	return classAttributes[animal_index]
 
 def create_data(path, sample_index, attributes):
