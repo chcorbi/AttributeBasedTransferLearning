@@ -81,7 +81,7 @@ def evaluate(split,C, attributepattern):
     for row in confusion:
         row /= sum(row)
 
-    return confusion,np.asarray(prob),L
+    return confusion,np.asarray(prob),P
 
 
 def plot_confusion(confusion, clf):
@@ -131,9 +131,9 @@ def plot_roc(P,GT, clf):
     plt.savefig('results/AwA-ROC-IAP-%s.pdf' %clf)
 
 
-def plot_attAUC(GT, attributepattern, clf):
+def plot_attAUC(P, attributepattern, clf):
     AUC=[]
-    P = np.loadtxt(attributepattern)
+    #P = np.loadtxt(attributepattern)
     attributes = get_attributes()
 
     # Loading ground truth
@@ -142,7 +142,7 @@ def plot_attAUC(GT, attributepattern, clf):
     _, y_true = create_data('./CreatedData/test_featuresVGG19.pic.bz2',test_index, test_attributes)
     print(y_true.shape, P.shape)
     for i in range(y_true.shape[1]):
-        fp, tp, _ = roc_curve(y_true[:,i],  P[:,i])
+        fp, tp, _ = roc_curve(y_true[:,i], P[:,i])
         roc_auc = auc(fp, tp)
         AUC.append(roc_auc)
     print ("Mean attrAUC %g" % (np.nanmean(AUC)) )
@@ -183,9 +183,9 @@ def main():
 
     attributepattern = 'IAP/probabilities_' + clf
     confusion,prob,L = evaluate(split,C, attributepattern)
-    plot_confusion(confusion, clf)
-    plot_roc(prob,L, clf)
-    #plot_attAUC(L, attributepattern, clf)
+    #plot_confusion(confusion, clf)
+    #plot_roc(prob,L, clf)
+    plot_attAUC(L, attributepattern, clf)
     print ("Mean class accuracy %g" % np.mean(np.diag(confusion)*100))
 
 if __name__ == '__main__':
